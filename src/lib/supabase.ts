@@ -125,6 +125,7 @@ export interface API {
   name: string;
   type: 'FREE' | 'PRO' | 'DISABLED';
   service_provider: string;
+}
 export interface RatePlan {
   id: string;
   plan_name: string;
