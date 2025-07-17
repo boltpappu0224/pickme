@@ -755,10 +755,11 @@ export const RatePlans: React.FC = () => {
       {/* API Modal */}
       {showAPIModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className={`max-w-md w-full rounded-lg p-6 ${
+          <div className={`max-w-md w-full rounded-lg max-h-[90vh] flex flex-col ${
             isDark ? 'bg-muted-graphite border border-cyber-teal/20' : 'bg-white border border-gray-200'
           }`}>
-            <div className="flex items-center justify-between mb-4">
+            {/* Fixed Header */}
+            <div className="flex items-center justify-between p-6 pb-4 border-b border-cyber-teal/20">
               <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {editingAPI ? 'Edit API' : 'Add New API'}
               </h3>
@@ -772,7 +773,9 @@ export const RatePlans: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-4">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 pt-4">
+              <div className="space-y-4">
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-gray-300' : 'text-gray-700'
@@ -944,9 +947,11 @@ export const RatePlans: React.FC = () => {
                   <option value="Inactive">Inactive</option>
                 </select>
               </div>
+              </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
+            {/* Fixed Footer */}
+            <div className="flex justify-end space-x-3 p-6 pt-4 border-t border-cyber-teal/20">
               <button
                 onClick={() => setShowAPIModal(false)}
                 className={`px-4 py-2 rounded-lg transition-colors ${
