@@ -201,7 +201,7 @@ export const OfficerDashboard: React.FC = () => {
   const getAPINameFromSubTab = (subTab: string) => {
     switch (subTab) {
       case 'phone-prefill':
-        return 'Phone Prefill';
+        return 'Phone Prefill V2';
       case 'rc-verification':
         return 'RC Verification';
       case 'credit-history':
@@ -333,7 +333,7 @@ export const OfficerDashboard: React.FC = () => {
 
   // Filter PRO lookup tabs based on officer's enabled APIs
   const proLookupTabs = [
-    { id: 'phone-prefill', name: 'Phone Prefill', icon: Phone, apiName: 'Phone Prefill' },
+    { id: 'phone-prefill', name: 'Phone Prefill', icon: Phone, apiName: 'Phone Prefill V2' },
     { id: 'rc-verification', name: 'RC / IMEI / FastTag', icon: Car, apiName: 'RC Verification' },
     { id: 'credit-history', name: 'Credit History', icon: CreditCardIcon, apiName: 'Credit History' },
     { id: 'cell-id', name: 'Cell ID', icon: MapPin, apiName: 'Cell ID Location' }
@@ -672,9 +672,9 @@ export const OfficerDashboard: React.FC = () => {
                 
                 <button
                   onClick={() => {setActiveTab('pro-lookups'); setActiveSubTab('phone-prefill');}}
-                  disabled={!hasAPIAccess('Phone Prefill')}
+                  disabled={!hasAPIAccess('Phone Prefill V2')}
                   className={`p-3 rounded-lg border transition-all duration-200 ${
-                    !hasAPIAccess('Phone Prefill')
+                    !hasAPIAccess('Phone Prefill V2')
                       ? 'bg-gray-500/10 border-gray-500/20 text-gray-500 cursor-not-allowed'
                       : isDark 
                         ? 'bg-crisp-black border-neon-magenta/20 text-gray-300 hover:border-neon-magenta/40' 
@@ -683,7 +683,7 @@ export const OfficerDashboard: React.FC = () => {
                 >
                   <Shield className="w-6 h-6 mx-auto mb-2 text-neon-magenta" />
                   <p className="text-xs">Phone Prefill</p>
-                  {!hasAPIAccess('Phone Prefill') && (
+                  {!hasAPIAccess('Phone Prefill V2') && (
                     <p className="text-xs text-red-400 mt-1">No Access</p>
                   )}
                 </button>
