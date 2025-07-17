@@ -286,7 +286,7 @@ export const OfficerDashboard: React.FC = () => {
     { id: 'rc-verification', name: 'RC / IMEI / FastTag', icon: Car, apiName: 'RC Verification' },
     { id: 'credit-history', name: 'Credit History', icon: CreditCardIcon, apiName: 'Credit History' },
     { id: 'cell-id', name: 'Cell ID', icon: MapPin, apiName: 'Cell ID Location' }
-  ].filter(tab => hasAPIAccess(tab.apiName));
+  ];
 
   if (!officer) {
     return null;
