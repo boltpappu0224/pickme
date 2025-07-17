@@ -3,12 +3,13 @@ import {
   Search, CreditCard, History, User, LogOut, Zap, Phone, Mail, Globe, ArrowLeft, 
   Shield, Car, Smartphone, MapPin, Link as LinkIcon, Bell, Settings, 
   Plus, Eye, Download, Filter, Calendar, Clock, CheckCircle, XCircle,
-  Wifi, Database, CreditCard as CreditCardIcon, AlertTriangle
+  Wifi, Database, CreditCard as CreditCardIcon, AlertTriangle, X
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useOfficerAuth } from '../contexts/OfficerAuthContext';
 import { useSupabaseData } from '../hooks/useSupabaseData';
+import toast from 'react-hot-toast';
 
 interface QueryResult {
   id: string;
@@ -39,6 +40,12 @@ export const OfficerDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('mobile-check');
   const [query, setQuery] = useState('');
+  const [phonePrefillData, setPhonePrefillData] = useState({
+    phoneNumber: '',
+    firstName: '',
+    lastName: '',
+    pan: ''
+  });
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<QueryResult[]>([]);
   const [trackLinks, setTrackLinks] = useState<TrackLink[]>([]);
@@ -122,12 +129,12 @@ export const OfficerDashboard: React.FC = () => {
       if (activeSubTab === 'phone-prefill' && hasAPIAccess('Phone Prefill V2')) {
         // Make actual Signzy API call
         try {
-          apiResponse = await callSignzyPhonePrefillAPI(query);
+          apiResponse = await callSignzyPhonePrefillAPI(phonePrefillData);
           resultSummary = formatSignzyResponse(apiResponse);
-          creditsUsed = getAPICreditCost('Phone Prefill');
+          creditsUsed = getAPICreditCost('Phone Prefill V2');
         } catch (error) {
           console.error('Signzy API error:', error);
-          resultSummary = `API call failed: ${error.message}. Please try again.`;
+          resultSummary = `API call failed: ${(error as Error).message}. Please try again.`;
           status = 'Failed';
         }
       } else {
@@ -140,7 +147,7 @@ export const OfficerDashboard: React.FC = () => {
         id: Date.now().toString(),
         type: isProQuery ? 'PRO' : 'OSINT',
         category: category,
-        input: query,
+        input: activeSubTab === 'phone-prefill' ? phonePrefillData.phoneNumber : query,
         result_summary: resultSummary,
         full_result: apiResponse,
         credits_used: creditsUsed,
@@ -172,7 +179,16 @@ export const OfficerDashboard: React.FC = () => {
         toast.success(`Query successful! ${creditsUsed} credits deducted.`);
       }
       
-      setQuery('');
+      if (activeSubTab === 'phone-prefill') {
+        setPhonePrefillData({
+          phoneNumber: '',
+          firstName: '',
+          lastName: '',
+          pan: ''
+        });
+      } else {
+        setQuery('');
+      }
     } catch (error) {
       console.error('Query error:', error);
       toast.error('Query failed. Please try again.');
@@ -198,7 +214,7 @@ export const OfficerDashboard: React.FC = () => {
   };
 
   // Signzy API call function
-  const callSignzyPhonePrefillAPI = async (phoneNumber: string) => {
+  const callSignzyPhonePrefillAPI = async (data: typeof phonePrefillData) => {
     // Get Signzy API key
     const signzyAPI = enabledAPIs.find(api => 
       api.name.includes('Phone Prefill') && 
@@ -210,21 +226,17 @@ export const OfficerDashboard: React.FC = () => {
       throw new Error('Signzy API key not found or inactive');
     }
     
-    // Clean phone number (remove +91 if present)
-    const cleanPhoneNumber = phoneNumber.replace(/^\+91/, '').replace(/\s+/g, '');
+    // Clean phone number (remove +91 and spaces if present)
+    const cleanPhoneNumber = data.phoneNumber.replace(/^\+91/, '').replace(/\s+/g, '');
     
     const requestBody = {
-      mobileNumber: cleanPhoneNumber,
-      fullName: "VERIFICATION", // Placeholder as it's optional
-      consent: {
-        consentFlag: true,
-        consentTimestamp: new Date().toISOString(),
-        consentIpAddress: "127.0.0.1", // Placeholder
-        consentMessageId: `consent_${Date.now()}`
-      }
+      phoneNumber: cleanPhoneNumber,
+      firstName: data.firstName,
+      ...(data.lastName && { lastName: data.lastName }),
+      ...(data.pan && { pan: data.pan })
     };
     
-    const response = await fetch('/api/signzy/api/v3/phonekyc/phone-prefill-v2', {
+    const response = await fetch('/api/signzy/api/v3/phonekyc/phone-prefill', {
       method: 'POST',
       headers: {
         'Authorization': signzyAPI.api_key.startsWith('Bearer ') ? signzyAPI.api_key : `Bearer ${signzyAPI.api_key}`,
@@ -244,18 +256,57 @@ export const OfficerDashboard: React.FC = () => {
 
   // Format Signzy response for display
   const formatSignzyResponse = (response: any) => {
-    if (!response || !response.result) {
+    if (!response || !response.response) {
       return 'No data found for this number';
     }
     
-    const result = response.result;
+    const result = response.response;
     const parts = [];
     
-    if (result.name) parts.push(`Name: ${result.name}`);
-    if (result.email) parts.push(`Email: ${result.email}`);
-    if (result.alternatePhone) parts.push(`Alt Phone: ${result.alternatePhone}`);
-    if (result.address) parts.push(`Address: ${result.address}`);
+    // Name information
+    if (result.name?.fullName) {
+      parts.push(`Name: ${result.name.fullName.trim()}`);
+    }
+    
+    // Basic info
+    if (result.age) parts.push(`Age: ${result.age}`);
+    if (result.gender) parts.push(`Gender: ${result.gender}`);
     if (result.dob) parts.push(`DOB: ${result.dob}`);
+    if (result.pan) parts.push(`PAN: ${result.pan}`);
+    if (result.income) parts.push(`Income: ₹${result.income}`);
+    
+    // Contact information
+    if (result.email && result.email.length > 0) {
+      const emails = result.email.map((e: any) => e.email).join(', ');
+      parts.push(`Emails: ${emails}`);
+    }
+    
+    if (result.alternatePhone && result.alternatePhone.length > 0) {
+      const phones = result.alternatePhone.map((p: any) => p.phoneNumber).join(', ');
+      parts.push(`Alt Phones: ${phones}`);
+    }
+    
+    // Address information (show primary address)
+    if (result.address && result.address.length > 0) {
+      const primaryAddress = result.address.find((addr: any) => addr.Type === 'Primary') || result.address[0];
+      if (primaryAddress) {
+        parts.push(`Address: ${primaryAddress.Address}, ${primaryAddress.State} ${primaryAddress.Postal}`);
+      }
+    }
+    
+    // Documents
+    if (result.voterId && result.voterId.length > 0) {
+      parts.push(`Voter ID: ${result.voterId[0].voterId}`);
+    }
+    
+    if (result.passport && result.passport.length > 0) {
+      parts.push(`Passport: ${result.passport[0].passport}`);
+    }
+    
+    if (result.drivingLicense && result.drivingLicense.length > 0) {
+      const licenses = result.drivingLicense.map((dl: any) => dl.drivingLicense).join(', ');
+      parts.push(`DL: ${licenses}`);
+    }
     
     return parts.length > 0 ? parts.join(' | ') : 'Basic verification completed';
   };
@@ -331,21 +382,86 @@ export const OfficerDashboard: React.FC = () => {
           </div>
         ) : (
         <div className="space-y-3">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={placeholder}
-            className={`w-full px-4 py-3 border border-cyber-teal/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:border-transparent ${
-              isDark 
-                ? 'bg-crisp-black text-white placeholder-gray-500' 
-                : 'bg-white text-gray-900 placeholder-gray-400'
-            }`}
-          />
+          {activeSubTab === 'phone-prefill' ? (
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={phonePrefillData.phoneNumber}
+                onChange={(e) => setPhonePrefillData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                placeholder="Enter mobile number (e.g., 9996889976)"
+                className={`w-full px-4 py-3 border border-cyber-teal/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:border-transparent ${
+                  isDark 
+                    ? 'bg-crisp-black text-white placeholder-gray-500' 
+                    : 'bg-white text-gray-900 placeholder-gray-400'
+                }`}
+              />
+              <input
+                type="text"
+                value={phonePrefillData.firstName}
+                onChange={(e) => setPhonePrefillData(prev => ({ ...prev, firstName: e.target.value }))}
+                placeholder="Enter first name (e.g., DARSHAN)"
+                className={`w-full px-4 py-3 border border-cyber-teal/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:border-transparent ${
+                  isDark 
+                    ? 'bg-crisp-black text-white placeholder-gray-500' 
+                    : 'bg-white text-gray-900 placeholder-gray-400'
+                }`}
+              />
+              <input
+                type="text"
+                value={phonePrefillData.lastName}
+                onChange={(e) => setPhonePrefillData(prev => ({ ...prev, lastName: e.target.value }))}
+                placeholder="Enter last name (optional, e.g., GORDHAN)"
+                className={`w-full px-4 py-3 border border-cyber-teal/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:border-transparent ${
+                  isDark 
+                    ? 'bg-crisp-black text-white placeholder-gray-500' 
+                    : 'bg-white text-gray-900 placeholder-gray-400'
+                }`}
+              />
+              <input
+                type="text"
+                value={phonePrefillData.pan}
+                onChange={(e) => setPhonePrefillData(prev => ({ ...prev, pan: e.target.value }))}
+                placeholder="Enter PAN number (optional, e.g., ACOPY8003F)"
+                className={`w-full px-4 py-3 border border-cyber-teal/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:border-transparent ${
+                  isDark 
+                    ? 'bg-crisp-black text-white placeholder-gray-500' 
+                    : 'bg-white text-gray-900 placeholder-gray-400'
+                }`}
+              />
+              <div className={`p-3 rounded-lg border ${
+                isDark ? 'bg-electric-blue/10 border-electric-blue/30' : 'bg-blue-50 border-blue-200'
+              }`}>
+                <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <strong>Sample Input:</strong><br/>
+                  Phone: 9996889976<br/>
+                  First Name: DARSHAN<br/>
+                  Last Name: GORDHAN (optional)<br/>
+                  PAN: ACOPY8003F (optional)
+                </p>
+              </div>
+            </div>
+          ) : (
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={placeholder}
+              className={`w-full px-4 py-3 border border-cyber-teal/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:border-transparent ${
+                isDark 
+                  ? 'bg-crisp-black text-white placeholder-gray-500' 
+                  : 'bg-white text-gray-900 placeholder-gray-400'
+              }`}
+            />
+          )}
           
           <button
             onClick={() => handleSearch(category)}
-            disabled={!query.trim() || isProcessing || !hasAccess}
+            disabled={
+              (activeSubTab === 'phone-prefill' 
+                ? !phonePrefillData.phoneNumber.trim() || !phonePrefillData.firstName.trim()
+                : !query.trim()
+              ) || isProcessing || !hasAccess
+            }
             className="w-full py-3 px-4 bg-cyber-gradient text-white font-medium rounded-lg hover:shadow-cyber transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
             {isProcessing ? (
@@ -704,7 +820,7 @@ export const OfficerDashboard: React.FC = () => {
             {/* Content based on sub-tab */}
             {activeSubTab === 'phone-prefill' && renderSearchInterface(
               'Phone Prefill', 
-              'Enter mobile number for detailed verification',
+              'Enter phone number and name for detailed verification',
               true
             )}
             {activeSubTab === 'rc-verification' && renderSearchInterface(
