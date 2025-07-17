@@ -125,14 +125,6 @@ export interface API {
   name: string;
   type: 'FREE' | 'PRO' | 'DISABLED';
   service_provider: string;
-  global_buy_price: number;
-  global_sell_price: number;
-  default_credit_charge: number;
-  description: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface RatePlan {
   id: string;
   plan_name: string;

@@ -200,13 +200,13 @@ export const OfficerDashboard: React.FC = () => {
   // Signzy API call function
   const callSignzyPhonePrefillAPI = async (phoneNumber: string) => {
     // Get Signzy API key
-    const signzyAPIKey = apiKeys.find(key => 
-      key.name === 'Phone Prefill V2' && 
-      key.provider === 'Signzy' && 
-      key.status === 'Active'
+    const signzyAPI = enabledAPIs.find(api => 
+      api.name === 'Phone Prefill V2' && 
+      api.service_provider === 'Signzy' && 
+      api.key_status === 'Active'
     );
     
-    if (!signzyAPIKey) {
+    if (!signzyAPI) {
       throw new Error('Signzy API key not found or inactive');
     }
     
@@ -227,7 +227,7 @@ export const OfficerDashboard: React.FC = () => {
     const response = await fetch('https://api-preproduction.signzy.app/api/v3/phonekyc/phone-prefill-v2', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${signzyAPIKey.api_key}`,
+        'Authorization': `Bearer ${signzyAPI.api_key}`,
         'x-client-unique-id': 'pickme@intelligence.com',
         'Content-Type': 'application/json'
       },

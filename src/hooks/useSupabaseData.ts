@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase, Officer, CreditTransaction, APIKey, Query, OfficerRegistration, LiveRequest, API, RatePlan, PlanAPI } from '../lib/supabase';
+import { supabase, Officer, CreditTransaction, Query, OfficerRegistration, LiveRequest, API, RatePlan, PlanAPI } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 export const useSupabaseData = () => {
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
-  const [apiKeys, setAPIKeys] = useState<APIKey[]>([]);
   const [queries, setQueries] = useState<Query[]>([]);
   const [registrations, setRegistrations] = useState<OfficerRegistration[]>([]);
   const [liveRequests, setLiveRequests] = useState<LiveRequest[]>([]);
@@ -22,7 +21,6 @@ export const useSupabaseData = () => {
       await Promise.all([
         loadOfficers(),
         loadTransactions(),
-        loadAPIKeys(),
         loadQueries(),
         loadRegistrations(),
         loadLiveRequests(),
@@ -57,16 +55,6 @@ export const useSupabaseData = () => {
     
     if (error) throw error;
     setTransactions(data || []);
-  };
-
-  const loadAPIKeys = async () => {
-    const { data, error } = await supabase
-      .from('api_keys')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    setAPIKeys(data || []);
   };
 
   const loadQueries = async () => {
@@ -104,7 +92,7 @@ export const useSupabaseData = () => {
   const loadAPIs = async () => {
     const { data, error } = await supabase
       .from('apis')
-      .select('*')
+      .select('*, api_key, key_status, usage_count, last_used')
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -292,67 +280,6 @@ export const useSupabaseData = () => {
     }
   };
 
-  // CRUD Operations for API Keys
-  const addAPIKey = async (apiKeyData: Omit<APIKey, 'id' | 'created_at' | 'updated_at' | 'usage_count' | 'last_used'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('api_keys')
-        .insert([{
-          ...apiKeyData,
-          usage_count: 0
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      await loadAPIKeys();
-      toast.success('API key added successfully!');
-      return data;
-    } catch (error: any) {
-      if (error.message.includes('duplicate key') || error.code === '23505') {
-        toast.error('An API key with this name and provider already exists');
-      } else {
-        toast.error(`Failed to add API key: ${error.message}`);
-      }
-      throw error;
-    }
-  };
-
-  const updateAPIKey = async (id: string, updates: Partial<APIKey>) => {
-    try {
-      const { error } = await supabase
-        .from('api_keys')
-        .update(updates)
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      await loadAPIKeys();
-      toast.success('API key updated successfully!');
-    } catch (error: any) {
-      toast.error(`Failed to update API key: ${error.message}`);
-      throw error;
-    }
-  };
-
-  const deleteAPIKey = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('api_keys')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      await loadAPIKeys();
-      toast.success('API key deleted successfully!');
-    } catch (error: any) {
-      toast.error(`Failed to delete API key: ${error.message}`);
-      throw error;
-    }
-  };
-
   // Registration Management
   const updateRegistration = async (id: string, updates: Partial<OfficerRegistration>) => {
     try {
@@ -502,11 +429,15 @@ export const useSupabaseData = () => {
   };
 
   // API Management
-  const addAPI = async (apiData: Omit<API, 'id' | 'created_at' | 'updated_at'>) => {
+  const addAPI = async (apiData: Omit<API, 'id' | 'created_at' | 'updated_at' | 'usage_count' | 'last_used'>) => {
     try {
       const { data, error } = await supabase
         .from('apis')
-        .insert([apiData])
+        .insert([{
+          ...apiData,
+          usage_count: 0,
+          key_status: apiData.key_status || 'Inactive'
+        }])
         .select()
         .single();
 
@@ -607,13 +538,12 @@ export const useSupabaseData = () => {
     if (!isLoading) {
       calculateDashboardStats();
     }
-  }, [officers, queries, transactions, isLoading]);
+  }, [officers, queries, transactions, apis, isLoading]);
 
   return {
     // Data
     officers,
     transactions,
-    apiKeys,
     queries,
     registrations,
     liveRequests,
@@ -630,9 +560,6 @@ export const useSupabaseData = () => {
     deleteOfficer,
     addTransaction,
     addQuery,
-    addAPIKey,
-    updateAPIKey,
-    deleteAPIKey,
     updateRegistration,
     addRatePlan,
     updateRatePlan,
@@ -645,7 +572,6 @@ export const useSupabaseData = () => {
     // Setters for local updates
     setOfficers,
     setTransactions,
-    setAPIKeys,
     setQueries,
     setRegistrations,
     setLiveRequests,

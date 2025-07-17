@@ -43,7 +43,9 @@ export const RatePlans: React.FC = () => {
     global_buy_price: 0,
     global_sell_price: 0,
     default_credit_charge: 0,
-    description: ''
+    description: '',
+    api_key: '',
+    key_status: 'Inactive' as 'Active' | 'Inactive'
   });
 
   // Get plan APIs for a specific plan
@@ -160,7 +162,9 @@ export const RatePlans: React.FC = () => {
       global_buy_price: 0,
       global_sell_price: 0,
       default_credit_charge: 0,
-      description: ''
+      description: '',
+      api_key: '',
+      key_status: 'Inactive'
     });
     setEditingAPI(null);
     setShowAPIModal(true);
@@ -174,7 +178,9 @@ export const RatePlans: React.FC = () => {
       global_buy_price: api.global_buy_price,
       global_sell_price: api.global_sell_price,
       default_credit_charge: api.default_credit_charge,
-      description: api.description
+      description: api.description,
+      api_key: api.api_key,
+      key_status: api.key_status
     });
     setEditingAPI(api);
     setShowAPIModal(true);
@@ -622,6 +628,8 @@ export const RatePlans: React.FC = () => {
               </div>
             </div>
 
+                        api.service_provider === 'Signzy' ? 'bg-purple-500/20 text-purple-400' :
+                        api.service_provider === 'Surepass' ? 'bg-orange-500/20 text-orange-400' :
             {/* API Configuration */}
             <div className="mb-6">
               <h4 className={`text-md font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -896,6 +904,45 @@ export const RatePlans: React.FC = () => {
                   }`}
                   placeholder="Brief description of the API service"
                 />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  isDark ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  API Key
+                </label>
+                <input
+                  type="text"
+                  value={apiFormData.api_key}
+                  onChange={(e) => setAPIFormData(prev => ({ ...prev, api_key: e.target.value }))}
+                  className={`w-full px-3 py-2 border border-cyber-teal/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyber-teal font-mono ${
+                    isDark 
+                      ? 'bg-crisp-black text-white placeholder-gray-500' 
+                      : 'bg-white text-gray-900 placeholder-gray-400'
+                  }`}
+                  placeholder="Enter API key (optional)"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  isDark ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Key Status
+                </label>
+                <select
+                  value={apiFormData.key_status}
+                  onChange={(e) => setAPIFormData(prev => ({ ...prev, key_status: e.target.value as 'Active' | 'Inactive' }))}
+                  className={`w-full px-3 py-2 border border-cyber-teal/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyber-teal ${
+                    isDark 
+                      ? 'bg-crisp-black text-white' 
+                      : 'bg-white text-gray-900'
+                  }`}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
               </div>
             </div>
 
