@@ -124,10 +124,10 @@ export const OfficerDashboard: React.FC = () => {
         try {
           apiResponse = await callSignzyPhonePrefillAPI(query);
           resultSummary = formatSignzyResponse(apiResponse);
-          creditsUsed = getAPICreditCost('Phone Prefill V2');
+          creditsUsed = getAPICreditCost('Phone Prefill');
         } catch (error) {
           console.error('Signzy API error:', error);
-          resultSummary = 'API call failed. Please try again.';
+          resultSummary = `API call failed: ${error.message}. Please try again.`;
           status = 'Failed';
         }
       } else {
@@ -185,7 +185,7 @@ export const OfficerDashboard: React.FC = () => {
   const getAPINameFromSubTab = (subTab: string) => {
     switch (subTab) {
       case 'phone-prefill':
-        return 'Phone Prefill V2';
+        return 'Phone Prefill';
       case 'rc-verification':
         return 'RC Verification';
       case 'credit-history':
@@ -201,7 +201,7 @@ export const OfficerDashboard: React.FC = () => {
   const callSignzyPhonePrefillAPI = async (phoneNumber: string) => {
     // Get Signzy API key
     const signzyAPI = enabledAPIs.find(api => 
-      api.name === 'Phone Prefill V2' && 
+      api.name.includes('Phone Prefill') && 
       api.service_provider === 'Signzy' && 
       api.key_status === 'Active'
     );
@@ -224,10 +224,10 @@ export const OfficerDashboard: React.FC = () => {
       }
     };
     
-    const response = await fetch('https://api-preproduction.signzy.app/api/v3/phonekyc/phone-prefill-v2', {
+    const response = await fetch('/api/signzy/api/v3/phonekyc/phone-prefill-v2', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${signzyAPI.api_key}`,
+        'Authorization': signzyAPI.api_key.startsWith('Bearer ') ? signzyAPI.api_key : `Bearer ${signzyAPI.api_key}`,
         'x-client-unique-id': 'pickme@intelligence.com',
         'Content-Type': 'application/json'
       },
@@ -235,7 +235,8 @@ export const OfficerDashboard: React.FC = () => {
     });
     
     if (!response.ok) {
-      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
     
     return await response.json();
@@ -281,7 +282,7 @@ export const OfficerDashboard: React.FC = () => {
 
   // Filter PRO lookup tabs based on officer's enabled APIs
   const proLookupTabs = [
-    { id: 'phone-prefill', name: 'Phone Prefill V2', icon: Phone, apiName: 'Phone Prefill V2' },
+    { id: 'phone-prefill', name: 'Phone Prefill', icon: Phone, apiName: 'Phone Prefill' },
     { id: 'rc-verification', name: 'RC / IMEI / FastTag', icon: Car, apiName: 'RC Verification' },
     { id: 'credit-history', name: 'Credit History', icon: CreditCardIcon, apiName: 'Credit History' },
     { id: 'cell-id', name: 'Cell ID', icon: MapPin, apiName: 'Cell ID Location' }
@@ -555,9 +556,9 @@ export const OfficerDashboard: React.FC = () => {
                 
                 <button
                   onClick={() => {setActiveTab('pro-lookups'); setActiveSubTab('phone-prefill');}}
-                  disabled={!hasAPIAccess('Phone Prefill V2')}
+                  disabled={!hasAPIAccess('Phone Prefill')}
                   className={`p-3 rounded-lg border transition-all duration-200 ${
-                    !hasAPIAccess('Phone Prefill V2')
+                    !hasAPIAccess('Phone Prefill')
                       ? 'bg-gray-500/10 border-gray-500/20 text-gray-500 cursor-not-allowed'
                       : isDark 
                         ? 'bg-crisp-black border-neon-magenta/20 text-gray-300 hover:border-neon-magenta/40' 
@@ -566,7 +567,7 @@ export const OfficerDashboard: React.FC = () => {
                 >
                   <Shield className="w-6 h-6 mx-auto mb-2 text-neon-magenta" />
                   <p className="text-xs">Phone Prefill</p>
-                  {!hasAPIAccess('Phone Prefill V2') && (
+                  {!hasAPIAccess('Phone Prefill') && (
                     <p className="text-xs text-red-400 mt-1">No Access</p>
                   )}
                 </button>
@@ -702,7 +703,7 @@ export const OfficerDashboard: React.FC = () => {
 
             {/* Content based on sub-tab */}
             {activeSubTab === 'phone-prefill' && renderSearchInterface(
-              'Phone Prefill V2', 
+              'Phone Prefill', 
               'Enter mobile number for detailed verification',
               true
             )}
