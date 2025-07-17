@@ -353,12 +353,12 @@ export const RatePlans: React.FC = () => {
 
                 <div className="mb-4">
                   <p className={`text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Enabled APIs: {getPlanAPIs(plan.id).filter(api => api.enabled).length} of {getPlanAPIs(plan.id).length}
+                    Enabled APIs: {getPlanAPIs(plan.id).filter(api => api.enabled).length} of {apis.length}
                   </p>
                   <div className={`w-full rounded-full h-2 ${isDark ? 'bg-crisp-black' : 'bg-gray-200'}`}>
                     <div 
                       className="bg-cyber-gradient h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${getPlanAPIs(plan.id).length > 0 ? (getPlanAPIs(plan.id).filter(api => api.enabled).length / getPlanAPIs(plan.id).length) * 100 : 0}%` }}
+                      style={{ width: `${apis.length > 0 ? (getPlanAPIs(plan.id).filter(api => api.enabled).length / apis.length) * 100 : 0}%` }}
                     />
                   </div>
                 </div>
