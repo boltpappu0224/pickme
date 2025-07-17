@@ -628,8 +628,6 @@ export const RatePlans: React.FC = () => {
               </div>
             </div>
 
-                        api.service_provider === 'Signzy' ? 'bg-purple-500/20 text-purple-400' :
-                        api.service_provider === 'Surepass' ? 'bg-orange-500/20 text-orange-400' :
             {/* API Configuration */}
             <div className="mb-6">
               <h4 className={`text-md font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
